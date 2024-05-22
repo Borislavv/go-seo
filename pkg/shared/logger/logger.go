@@ -5,7 +5,7 @@ import (
 )
 
 func NewLogger() (logger *logrus.Logger, closeFunc func()) {
-	cfg := Load()
+	cfg := new(Config).Load()
 	lgr := logrus.New()
 	lgr.SetLevel(cfg.GetLevel())
 

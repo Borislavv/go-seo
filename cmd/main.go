@@ -1,28 +1,14 @@
 package main
 
 import (
-	"context"
-	"github.com/Borislavv/go-seo/pkg/shared/logger"
-	"github.com/Borislavv/go-seo/pkg/shared/server"
-	"github.com/Borislavv/go-seo/pkg/shared/shutdown"
-	"sync"
+	"github.com/Borislavv/go-seo/cmd/app/seo"
+	"github.com/Borislavv/go-seo/pkg/shared/config"
 )
 
+func init() {
+	config.Load()
+}
+
 func main() {
-	wg := &sync.WaitGroup{}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	lgr, closeFunc := logger.NewLogger()
-	defer closeFunc()
-
-	server.
-		NewHTTP(lgr).
-		ListenAndServe(ctx, wg)
-
-	shutdown.
-		NewGraceful(cancel).
-		ListenAndCancel()
-
-	wg.Wait()
+	new(seo.App).Run()
 }

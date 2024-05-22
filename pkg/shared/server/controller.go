@@ -4,7 +4,7 @@ import (
 	"github.com/fasthttp/router"
 )
 
-type Controller interface {
+type HttpController interface {
 	// AddRoute is a method which must take a *fasthttp.router.Router and add new route.
 	// Must be implemented into each RestApi and so on controllers for inject them
 	// into the server for serving them.

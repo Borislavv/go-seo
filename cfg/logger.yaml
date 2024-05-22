@@ -1,6 +1,0 @@
-# /dev/null/, stdout, or path to file (logs will store in the {projectRoot}/var/log dir.)
-output: "stdout"
-# text, json
-format: "text"
-# debug, info, notice, warning, error, fatal, panic
-level: "debug"

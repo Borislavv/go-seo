@@ -1,0 +1,4 @@
+# must starts from ":"
+port: ":8089"
+# must be unit value in seconds
+shutdown_timeout_secs: 15

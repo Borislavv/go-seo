@@ -1,12 +1,20 @@
 package helper
 
 import (
+	"github.com/Borislavv/go-seo/pkg/shared/config"
 	"os"
 	"strings"
 )
 
 const (
-	LogsDir = "/var/log"
+	LogsDir       = "/var/log"
+	ConfigDevDir  = "/cfg/dev"
+	ConfigProdDir = "/cfg/prod"
+	ConfigTestDir = "/cfg/dev"
+)
+
+var (
+	appEnv = os.Getenv("APP_ENV")
 )
 
 func Path(additionalPath string) (path string, err error) {
@@ -20,6 +28,17 @@ func Path(additionalPath string) (path string, err error) {
 	path = strings.ReplaceAll(path, pathSeparator+pathSeparator, pathSeparator)
 
 	return path, nil
+}
+
+func ConfigPath(additionalPath string) (path string, err error) {
+	path = ConfigDevDir
+	if config.Get().IsProd() {
+		path = ConfigProdDir
+	} else if config.Get().IsTest() {
+		path = ConfigTestDir
+	}
+
+	return Path(path + string(os.PathSeparator) + additionalPath)
 }
 
 func LogsPath(additionalPath string) (path string, err error) {

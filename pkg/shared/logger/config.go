@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-const configPath = "/cfg/logger.yaml"
+const configFile = "logger.yaml"
 
 type Config struct {
 	Output string `yaml:"output"`
@@ -17,8 +17,8 @@ type Config struct {
 	Level  string `yaml:"level"`
 }
 
-func Load() *Config {
-	path, err := helper.Path(configPath)
+func (c *Config) Load() *Config {
+	path, err := helper.ConfigPath(configFile)
 	if err != nil {
 		panic(err)
 	}
@@ -34,12 +34,11 @@ func Load() *Config {
 		panic(err)
 	}
 
-	cfg := new(Config)
-	if err = yaml.Unmarshal(buff, cfg); err != nil {
+	if err = yaml.Unmarshal(buff, c); err != nil {
 		panic(err)
 	}
 
-	return cfg
+	return c
 }
 
 func (c *Config) GetOutput() *os.File {

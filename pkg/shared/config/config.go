@@ -22,6 +22,8 @@ func Load() {
 	cfg.appEnv = os.Getenv("APP_ENV")
 	if cfg.appEnv == "" {
 		panic(fmt.Sprintf("APP_ENV environment variable must be defined"))
+	} else {
+		fmt.Printf("APP_ENV=%v\n", cfg.appEnv)
 	}
 }
 

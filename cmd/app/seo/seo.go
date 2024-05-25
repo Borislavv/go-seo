@@ -37,7 +37,7 @@ func (s *App) Run() {
 	wg.Wait()
 }
 
-// controllers: returns a slice of controllers for http server (handlers).
+// controllers: returns a slice of server.HttpController[s] for http server (handlers).
 func controllers(lgr logger.Logger) []server.HttpController {
 	return []server.HttpController{
 		controller.NewPagedataGetController(lgr),

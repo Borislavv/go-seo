@@ -3,6 +3,8 @@ package seo
 import (
 	"context"
 	"github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
+	internallogger "github.com/Borislavv/go-seo/internal/shared/logger"
+	internalserver "github.com/Borislavv/go-seo/internal/shared/server"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
 	"github.com/Borislavv/go-seo/pkg/shared/server"
 	"github.com/Borislavv/go-seo/pkg/shared/shutdown"
@@ -17,11 +19,15 @@ func (s *App) Run() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	loggerService, closeLoggerFunc := logger.NewLogger()
-	defer closeLoggerFunc()
+	lgr, clsLgrFn := logger.NewLogger(ctx, processors())
+	defer clsLgrFn()
 
 	server.
-		NewHTTP(loggerService, initControllers(loggerService)).
+		NewHTTP(
+			lgr,
+			controllers(lgr),
+			middlewares(lgr),
+		).
 		ListenAndServe(ctx, wg)
 
 	shutdown.
@@ -31,8 +37,25 @@ func (s *App) Run() {
 	wg.Wait()
 }
 
-func initControllers(loggerService logger.Logger) []server.HttpController {
+// controllers: returns a slice of controllers for http server (handlers).
+func controllers(lgr logger.Logger) []server.HttpController {
 	return []server.HttpController{
-		controller.NewPagedataGetController(loggerService),
+		controller.NewPagedataGetController(lgr),
+	}
+}
+
+// middlewares: returns a slice of server.HttpMiddleware[s] which will executes in reverse order before handling request.
+func middlewares(lgr logger.Logger) []server.HttpMiddleware {
+	return []server.HttpMiddleware{
+		internalserver.NewApplicationJsonMiddleware(),
+		internalserver.NewLogRequestMiddleware(lgr),
+	}
+}
+
+// processors: returns a slice of logger.FieldsProcessor[s] which mutate fields map.
+func processors() []logger.FieldsProcessor {
+	return []logger.FieldsProcessor{
+		internallogger.NewRequestIDProcessor(),
+		internallogger.NewRequestGUIDProcessor(),
 	}
 }

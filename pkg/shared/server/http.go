@@ -16,43 +16,52 @@ type HTTP struct {
 	logger logger.Logger
 }
 
-func NewHTTP(logger logger.Logger, controllers []HttpController) *HTTP {
+func NewHTTP(
+	logger logger.Logger,
+	controllers []HttpController,
+	middlewares []HttpMiddleware,
+) *HTTP {
 	s := &HTTP{logger: logger, config: new(Config).Load()}
-	s.init(s.buildRouter(controllers))
+	s.initServer(s.buildRouter(controllers), middlewares)
 	return s
 }
 
 func (s *HTTP) ListenAndServe(ctx context.Context, wg *sync.WaitGroup) {
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := s.server.ListenAndServe(s.config.Port); err != nil {
-			s.logger.Error(err)
-		}
-	}()
+	go s.serve(wg)
 
 	wg.Add(1)
-	go func() {
-		defer func() {
-			s.logger.Info("http server was stopped")
-			wg.Done()
-		}()
+	go s.shutdown(wg, ctx)
+}
 
-		<-ctx.Done()
-
-		sctx, cancel := context.WithTimeout(ctx, time.Duration(s.config.ShutDownTimeoutSeconds))
-		defer cancel()
-
-		if err := s.server.ShutdownWithContext(sctx); err != nil {
-			if errors.Is(err, context.Canceled) {
-				s.logger.Info(err)
-			} else {
-				s.logger.Error(err)
-			}
-		}
-	}()
+func (s *HTTP) serve(wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	s.logger.Infof("http server was started on port http://0.0.0.0%v", s.config.Port)
+
+	if err := s.server.ListenAndServe(s.config.Port); err != nil {
+		s.logger.Error(err)
+	}
+}
+
+func (s *HTTP) shutdown(wg *sync.WaitGroup, ctx context.Context) {
+	defer func() {
+		s.logger.Info("http server was stopped")
+		wg.Done()
+	}()
+
+	<-ctx.Done()
+
+	sctx, cancel := context.WithTimeout(ctx, time.Duration(s.config.ShutDownTimeoutSeconds))
+	defer cancel()
+
+	if err := s.server.ShutdownWithContext(sctx); err != nil {
+		if errors.Is(err, context.Canceled) {
+			s.logger.Info(err)
+		} else {
+			s.logger.Error(err)
+		}
+	}
 }
 
 func (s *HTTP) buildRouter(controllers []HttpController) *router.Router {
@@ -63,6 +72,12 @@ func (s *HTTP) buildRouter(controllers []HttpController) *router.Router {
 	return r
 }
 
-func (s *HTTP) init(r *router.Router) {
-	s.server = &fasthttp.Server{Handler: r.Handler}
+func (s *HTTP) initServer(r *router.Router, mdws []HttpMiddleware) {
+	h := r.Handler
+
+	for i := len(mdws) - 1; i >= 0; i-- {
+		h = mdws[i].Middleware(h)
+	}
+
+	s.server = &fasthttp.Server{Handler: h}
 }

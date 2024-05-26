@@ -12,19 +12,18 @@ import (
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 type InitCtxMiddleware struct {
-	ctx    context.Context
-	logger logger.Logger
+	ctx context.Context
 }
 
-func NewInitCtxMiddleware(ctx context.Context, logger logger.Logger) *InitCtxMiddleware {
-	return &InitCtxMiddleware{ctx: ctx, logger: logger}
+func NewInitCtxMiddleware(ctx context.Context) *InitCtxMiddleware {
+	return &InitCtxMiddleware{ctx: ctx}
 }
 
 func (m *InitCtxMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		reqCtx := context.WithValue(m.ctx, values.RequestStartedAt, time.Now())
 
-		m.logger.SetRequestCtx(reqCtx)
+		ctx.SetUserValue(values.CtxKey, reqCtx)
 
 		next(ctx)
 	}
@@ -32,26 +31,34 @@ func (m *InitCtxMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.Re
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-type EnrichLoggerCtxByIDMiddleware struct {
+type EnrichCtxByIDMiddleware struct {
 	ctx    context.Context
 	logger logger.Logger
 }
 
-func NewEnrichLoggerCtxByIDMiddleware(ctx context.Context, logger logger.Logger) *EnrichLoggerCtxByIDMiddleware {
-	return &EnrichLoggerCtxByIDMiddleware{ctx: ctx, logger: logger}
+func NewEnrichCtxByIDMiddleware(ctx context.Context, logger logger.Logger) *EnrichCtxByIDMiddleware {
+	return &EnrichCtxByIDMiddleware{ctx: ctx, logger: logger}
 }
 
-func (m *EnrichLoggerCtxByIDMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+func (m *EnrichCtxByIDMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		requestID := string(ctx.Request.Header.Peek(values.RequestIDHeader))
-		if requestID == "" {
-			requestID = uuid.V4()
+		reqID := string(ctx.Request.Header.Peek(values.RequestIDHeader))
+		if reqID == "" {
+			m.logger.Errorf(m.ctx, "%v is not exists into request headers "+
+				"(provided a new one), some part of logs my be lost", values.RequestIDHeader)
+			reqID = uuid.V4()
 		}
 
-		reqCtx := m.logger.GetRequestCtx()
-		reqCtx = context.WithValue(reqCtx, values.RequestIDKey, requestID)
+		reqCtx, ok := ctx.UserValue(values.CtxKey).(context.Context)
+		if !ok {
+			m.logger.Error(m.ctx, "context.Context is not present into fasthttp.RequestCtx "+
+				"(provided a default ctx), some part of logs my be lost")
+			reqCtx = m.ctx
+		}
 
-		m.logger.SetRequestCtx(reqCtx)
+		reqCtx = context.WithValue(reqCtx, values.RequestIDKey, reqID)
+
+		ctx.SetUserValue(values.CtxKey, reqCtx)
 
 		next(ctx)
 	}
@@ -59,26 +66,34 @@ func (m *EnrichLoggerCtxByIDMiddleware) Middleware(next fasthttp.RequestHandler)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-type EnrichLoggerCtxByGUIDMiddleware struct {
+type EnrichCtxByGUIDMiddleware struct {
 	ctx    context.Context
 	logger logger.Logger
 }
 
-func NewEnrichLoggerCtxByGUIDMiddleware(ctx context.Context, logger logger.Logger) *EnrichLoggerCtxByGUIDMiddleware {
-	return &EnrichLoggerCtxByGUIDMiddleware{ctx: ctx, logger: logger}
+func NewEnrichLoggerCtxByGUIDMiddleware(ctx context.Context, logger logger.Logger) *EnrichCtxByGUIDMiddleware {
+	return &EnrichCtxByGUIDMiddleware{ctx: ctx, logger: logger}
 }
 
-func (m *EnrichLoggerCtxByGUIDMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
+func (m *EnrichCtxByGUIDMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		requestGUID := string(ctx.Request.Header.Peek(values.RequestGUIDHeader))
-		if requestGUID == "" {
-			requestGUID = uuid.V4()
+		reqGUID := string(ctx.Request.Header.Peek(values.RequestGUIDHeader))
+		if reqGUID == "" {
+			m.logger.Errorf(m.ctx, "%v is not exists into request headers "+
+				"(provided a new one), some part of logs my be lost", values.RequestGUIDHeader)
+			reqGUID = uuid.V4()
 		}
 
-		reqCtx := m.logger.GetRequestCtx()
-		reqCtx = context.WithValue(reqCtx, values.RequestGUIDKey, requestGUID)
+		reqCtx, ok := ctx.UserValue(values.CtxKey).(context.Context)
+		if !ok {
+			m.logger.Error(m.ctx, "context.Context is not present into fasthttp.RequestCtx "+
+				"(provided a default ctx), some part of logs my be lost")
+			reqCtx = m.ctx
+		}
 
-		m.logger.SetRequestCtx(reqCtx)
+		reqCtx = context.WithValue(reqCtx, values.RequestGUIDKey, reqGUID)
+
+		ctx.SetUserValue(values.CtxKey, reqCtx)
 
 		next(ctx)
 	}
@@ -104,15 +119,23 @@ func (ApplicationJsonMiddleware) Middleware(next fasthttp.RequestHandler) fastht
 
 type LogRequestMiddleware struct {
 	logger logger.Logger
+	ctx    context.Context
 }
 
-func NewLogRequestMiddleware(logger logger.Logger) *LogRequestMiddleware {
-	return &LogRequestMiddleware{logger: logger}
+func NewLogRequestMiddleware(ctx context.Context, logger logger.Logger) *LogRequestMiddleware {
+	return &LogRequestMiddleware{ctx: ctx, logger: logger}
 }
 
 func (m *LogRequestMiddleware) Middleware(next fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		m.logger.WithFields(map[string]interface{}{
+		reqCtx, ok := ctx.UserValue(values.CtxKey).(context.Context)
+		if !ok {
+			m.logger.Error(m.ctx, "context.Context is not present into fasthttp.RequestCtx "+
+				"(provided a default ctx), some part of logs my be lost")
+			reqCtx = m.ctx
+		}
+
+		m.logger.WithFields(reqCtx, map[string]interface{}{
 			"method":   string(ctx.Method()),
 			"path":     string(ctx.Path()),
 			"host":     string(ctx.Host()),

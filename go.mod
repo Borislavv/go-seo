@@ -3,6 +3,7 @@ module github.com/Borislavv/go-seo
 go 1.22.1
 
 require (
+	github.com/Borislavv/go-cache v1.0.1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/fasthttp/router v1.5.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect

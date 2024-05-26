@@ -17,8 +17,8 @@ func NewRequestIDProcessor() *RequestIDProcessor {
 	return &RequestIDProcessor{}
 }
 
-func (p *RequestIDProcessor) Process(next logger.Processor, ctx context.Context) logger.Processor {
-	return func(fields map[string]interface{}) *logrus.Entry {
+func (p *RequestIDProcessor) Process(next logger.Processor) logger.Processor {
+	return func(fields map[string]interface{}, ctx context.Context) *logrus.Entry {
 		requestID := ctx.Value(values.RequestIDKey)
 		if requestID == nil {
 			requestID = uuid.V4()
@@ -27,7 +27,7 @@ func (p *RequestIDProcessor) Process(next logger.Processor, ctx context.Context)
 		}
 		fields[values.RequestIDKey] = requestID
 
-		return next(fields)
+		return next(fields, ctx)
 	}
 }
 
@@ -40,8 +40,8 @@ func NewRequestGUIDProcessor() *RequestGUIDProcessor {
 	return &RequestGUIDProcessor{}
 }
 
-func (p *RequestGUIDProcessor) Process(next logger.Processor, ctx context.Context) logger.Processor {
-	return func(fields map[string]interface{}) *logrus.Entry {
+func (p *RequestGUIDProcessor) Process(next logger.Processor) logger.Processor {
+	return func(fields map[string]interface{}, ctx context.Context) *logrus.Entry {
 		requestGUID := ctx.Value(values.RequestGUIDKey)
 		if requestGUID == nil {
 			requestGUID = uuid.V4()
@@ -50,6 +50,6 @@ func (p *RequestGUIDProcessor) Process(next logger.Processor, ctx context.Contex
 		}
 		fields[values.RequestGUIDKey] = requestGUID
 
-		return next(fields)
+		return next(fields, ctx)
 	}
 }

@@ -3,8 +3,8 @@ package seo
 import (
 	"context"
 	"github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
-	internallogger "github.com/Borislavv/go-seo/internal/shared/logger"
 	internalserver "github.com/Borislavv/go-seo/internal/shared/server"
+	"github.com/Borislavv/go-seo/internal/shared/values"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
 	"github.com/Borislavv/go-seo/pkg/shared/server"
 	"github.com/Borislavv/go-seo/pkg/shared/shutdown"
@@ -14,21 +14,23 @@ import (
 type App struct {
 }
 
+// Run starts the SEO application.
 func (s *App) Run() {
 	wg := &sync.WaitGroup{}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	lgr, clsLgrFn := logger.NewLogger(ctx, processors())
+	lgr, clsLgrFn := logger.NewLogger(values.ExtraFields)
 	defer clsLgrFn()
 
 	server.
 		NewHTTP(
+			ctx,
 			lgr,
-			controllers(lgr),
+			controllers(ctx, lgr),
 			middlewares(ctx, lgr),
 		).
-		ListenAndServe(ctx, wg)
+		ListenAndServe(wg)
 
 	shutdown.
 		NewGraceful(cancel).
@@ -38,27 +40,19 @@ func (s *App) Run() {
 }
 
 // controllers returns a slice of server.HttpController[s] for http server (handlers).
-func controllers(lgr logger.Logger) []server.HttpController {
+func controllers(ctx context.Context, lgr logger.Logger) []server.HttpController {
 	return []server.HttpController{
-		controller.NewPagedataGetController(lgr),
+		controller.NewPagedataGetController(ctx, lgr),
 	}
 }
 
 // middlewares returns a slice of server.HttpMiddleware[s] which will executes in reverse order before handling request.
 func middlewares(ctx context.Context, lgr logger.Logger) []server.HttpMiddleware {
 	return []server.HttpMiddleware{
-		/** exec 1st. */ internalserver.NewInitCtxMiddleware(ctx, lgr),
-		/** exec 2nd. */ internalserver.NewEnrichLoggerCtxByIDMiddleware(ctx, lgr),
+		/** exec 1st. */ internalserver.NewInitCtxMiddleware(ctx),
+		/** exec 2nd. */ internalserver.NewEnrichCtxByIDMiddleware(ctx, lgr),
 		/** exec 3rd. */ internalserver.NewEnrichLoggerCtxByGUIDMiddleware(ctx, lgr),
-		/** exec 4th. */ internalserver.NewLogRequestMiddleware(lgr),
+		/** exec 4th. */ internalserver.NewLogRequestMiddleware(ctx, lgr),
 		/** exec 5th. */ internalserver.NewApplicationJsonMiddleware(),
-	}
-}
-
-// processors returns a slice of logger.FieldsProcessor[s] which mutate fields map.
-func processors() []logger.FieldsProcessor {
-	return []logger.FieldsProcessor{
-		/** exec 1st. */ internallogger.NewRequestIDProcessor(),
-		/** exec 2nd. */ internallogger.NewRequestGUIDProcessor(),
 	}
 }

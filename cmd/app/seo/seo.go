@@ -2,6 +2,7 @@ package seo
 
 import (
 	"context"
+	"github.com/Borislavv/go-cache/pkg/cache"
 	"github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
 	internalserver "github.com/Borislavv/go-seo/internal/shared/server"
 	"github.com/Borislavv/go-seo/internal/shared/values"
@@ -9,6 +10,7 @@ import (
 	"github.com/Borislavv/go-seo/pkg/shared/server"
 	"github.com/Borislavv/go-seo/pkg/shared/shutdown"
 	"sync"
+	"time"
 )
 
 type App struct {
@@ -23,11 +25,16 @@ func (s *App) Run() {
 	lgr, clsLgrFn := logger.NewLogger(values.ExtraFields)
 	defer clsLgrFn()
 
+	chr := cache.NewCache(
+		cache.NewMapCacheStorage(ctx),
+		cache.NewCacheDisplacer(ctx, time.Second*15),
+	)
+
 	server.
 		NewHTTP(
 			ctx,
 			lgr,
-			controllers(ctx, lgr),
+			controllers(ctx, chr, lgr),
 			middlewares(ctx, lgr),
 		).
 		ListenAndServe(wg)
@@ -40,9 +47,9 @@ func (s *App) Run() {
 }
 
 // controllers returns a slice of server.HttpController[s] for http server (handlers).
-func controllers(ctx context.Context, lgr logger.Logger) []server.HttpController {
+func controllers(ctx context.Context, chr cache.Cacher, lgr logger.Logger) []server.HttpController {
 	return []server.HttpController{
-		controller.NewPagedataGetController(ctx, lgr),
+		controller.NewPagedataGetController(ctx, chr, lgr),
 	}
 }
 

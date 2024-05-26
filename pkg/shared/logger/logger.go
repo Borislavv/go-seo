@@ -23,11 +23,11 @@ func NewLogger(defaultCtx context.Context, processors []FieldsProcessor) (logger
 	lgr.SetOutput(output)
 
 	if len(processors) > 0 {
-		var p Processor = func(fields logrus.Fields) *logrus.Entry {
+		var p Processor = func(fields map[string]interface{}, ctx context.Context) *logrus.Entry {
 			return lgr.Logger.WithFields(fields)
 		}
 		for i := len(processors); i > 0; i-- {
-			p = processors[i-1].Process(p, defaultCtx)
+			p = processors[i-1].Process(p)
 		}
 		lgr.processor = p
 	}
@@ -47,7 +47,7 @@ func (l *LogrusLogger) SetRequestCtx(ctx context.Context) {
 
 func (l *LogrusLogger) WithFields(fields logrus.Fields) *logrus.Entry {
 	if l.processor != nil {
-		return l.processor(fields)
+		return l.processor(fields, l.requestCtx)
 	}
 	return l.Logger.WithFields(fields)
 }

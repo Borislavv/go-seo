@@ -6,7 +6,7 @@ import (
 )
 
 type FieldsProcessor interface {
-	Process(p Processor, ctx context.Context) Processor
+	Process(p Processor) Processor
 }
 
-type Processor func(fields map[string]interface{}) *logrus.Entry
+type Processor func(fields map[string]interface{}, ctx context.Context) *logrus.Entry

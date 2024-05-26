@@ -26,7 +26,7 @@ func (s *App) Run() {
 		NewHTTP(
 			lgr,
 			controllers(lgr),
-			middlewares(lgr),
+			middlewares(ctx, lgr),
 		).
 		ListenAndServe(ctx, wg)
 
@@ -37,25 +37,28 @@ func (s *App) Run() {
 	wg.Wait()
 }
 
-// controllers: returns a slice of server.HttpController[s] for http server (handlers).
+// controllers returns a slice of server.HttpController[s] for http server (handlers).
 func controllers(lgr logger.Logger) []server.HttpController {
 	return []server.HttpController{
 		controller.NewPagedataGetController(lgr),
 	}
 }
 
-// middlewares: returns a slice of server.HttpMiddleware[s] which will executes in reverse order before handling request.
-func middlewares(lgr logger.Logger) []server.HttpMiddleware {
+// middlewares returns a slice of server.HttpMiddleware[s] which will executes in reverse order before handling request.
+func middlewares(ctx context.Context, lgr logger.Logger) []server.HttpMiddleware {
 	return []server.HttpMiddleware{
-		internalserver.NewApplicationJsonMiddleware(),
-		internalserver.NewLogRequestMiddleware(lgr),
+		/** exec 1st. */ internalserver.NewInitCtxMiddleware(ctx, lgr),
+		/** exec 2nd. */ internalserver.NewEnrichLoggerCtxByIDMiddleware(ctx, lgr),
+		/** exec 3rd. */ internalserver.NewEnrichLoggerCtxByGUIDMiddleware(ctx, lgr),
+		/** exec 4th. */ internalserver.NewLogRequestMiddleware(lgr),
+		/** exec 5th. */ internalserver.NewApplicationJsonMiddleware(),
 	}
 }
 
-// processors: returns a slice of logger.FieldsProcessor[s] which mutate fields map.
+// processors returns a slice of logger.FieldsProcessor[s] which mutate fields map.
 func processors() []logger.FieldsProcessor {
 	return []logger.FieldsProcessor{
-		internallogger.NewRequestIDProcessor(),
-		internallogger.NewRequestGUIDProcessor(),
+		/** exec 1st. */ internallogger.NewRequestIDProcessor(),
+		/** exec 2nd. */ internallogger.NewRequestGUIDProcessor(),
 	}
 }

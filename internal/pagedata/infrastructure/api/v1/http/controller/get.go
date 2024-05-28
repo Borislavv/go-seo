@@ -4,26 +4,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Borislavv/go-cache/pkg/cache"
 	"github.com/Borislavv/go-seo/internal/shared/values"
+	"github.com/Borislavv/go-seo/pkg/shared/api/http/controller"
+	"github.com/Borislavv/go-seo/pkg/shared/cache"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
+	"time"
 )
 
 const PagedataGetPath = "/pagedata"
 
 type PagedataGetController struct {
-	ctx    context.Context
-	cache  cache.Cacher
-	logger logger.Logger
+	abstract *controller.Abstract
+	ctx      context.Context
+	cache    cache.Cacher
+	logger   logger.Logger
 }
 
 func NewPagedataGetController(ctx context.Context, cache cache.Cacher, logger logger.Logger) *PagedataGetController {
 	return &PagedataGetController{
-		ctx:    ctx,
-		cache:  cache,
-		logger: logger,
+		abstract: controller.NewAbstractController(logger),
+		ctx:      ctx,
+		cache:    cache,
+		logger:   logger,
 	}
 }
 
@@ -35,25 +39,29 @@ func (c *PagedataGetController) Get(ctx *fasthttp.RequestCtx) {
 		reqCtx = c.ctx
 	}
 
-	i := 0
-	d, _ := c.cache.Get("helloworld", func(item cache.CacheItem) (data interface{}, err error) {
-		fmt.Println("computed")
-		i = i + 1
-		return i, nil
-	})
-
-	data := make(map[string]map[string]interface{}, 1)
-	data["data"] = make(map[string]interface{}, 1)
-	data["data"]["success"] = true
-	data["data"]["i"] = d
-
-	b, err := json.Marshal(data)
+	data, err := c.cache.Get(
+		string(ctx.Request.Header.Method())+" "+ctx.Request.URI().String(),
+		func(item cache.CacheItem) (data interface{}, err error) {
+			item.SetTTL(time.Minute * 30)
+			return c.get()
+		},
+	)
 	if err != nil {
-		c.logger.Errorf(c.ctx, "json marshal fail: %v", err.Error())
+		c.logger.Error(c.ctx, "failed to get the data from the cache: "+err.Error())
+		c.abstract.InternalServerError(ctx)
+		return
 	}
 
-	if _, err = ctx.Write(b); err != nil {
+	byteSlice, ok := data.([]byte)
+	if !ok {
+		c.logger.Error(c.ctx, "failed to convert the data to byte slice")
+		c.abstract.InternalServerError(ctx)
+		return
+	}
+
+	if _, err = ctx.Write(byteSlice); err != nil {
 		c.logger.Errorf(reqCtx, "ctx.Write fail: %v", err.Error())
+		c.abstract.InternalServerError(ctx)
 	} else {
 		ctx.SetStatusCode(fasthttp.StatusOK)
 		c.logger.Info(reqCtx, "http response")
@@ -62,4 +70,12 @@ func (c *PagedataGetController) Get(ctx *fasthttp.RequestCtx) {
 
 func (c *PagedataGetController) AddRoute(router *router.Router) {
 	router.GET(PagedataGetPath, c.Get)
+}
+
+func (c *PagedataGetController) get() ([]byte, error) {
+	datum := make(map[string]map[string]interface{}, 1)
+	datum["data"] = make(map[string]interface{}, 1)
+	datum["data"]["success"] = true
+	fmt.Println("======== compurted ========")
+	return json.Marshal(datum)
 }

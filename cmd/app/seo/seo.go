@@ -2,10 +2,10 @@ package seo
 
 import (
 	"context"
-	"github.com/Borislavv/go-cache/pkg/cache"
 	"github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
 	internalserver "github.com/Borislavv/go-seo/internal/shared/server"
 	"github.com/Borislavv/go-seo/internal/shared/values"
+	"github.com/Borislavv/go-seo/pkg/shared/cache"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
 	"github.com/Borislavv/go-seo/pkg/shared/server"
 	"github.com/Borislavv/go-seo/pkg/shared/shutdown"

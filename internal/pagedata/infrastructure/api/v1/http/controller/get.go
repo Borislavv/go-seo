@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"github.com/Borislavv/go-seo/internal/shared/values"
+	"github.com/Borislavv/go-seo/internal/shared/infrastructure/values"
 	"github.com/Borislavv/go-seo/pkg/shared/api/http/controller"
 	"github.com/Borislavv/go-seo/pkg/shared/cache"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
@@ -14,15 +14,15 @@ import (
 
 const PagedataGetPath = "/pagedata"
 
-type PagedataGetController struct {
+type PagedataGet struct {
 	abstract *controller.Abstract
 	ctx      context.Context
 	cache    cache.Cacher
 	logger   logger.Logger
 }
 
-func NewPagedataGetController(ctx context.Context, cache cache.Cacher, logger logger.Logger) *PagedataGetController {
-	return &PagedataGetController{
+func NewPagedataGet(ctx context.Context, cache cache.Cacher, logger logger.Logger) *PagedataGet {
+	return &PagedataGet{
 		abstract: controller.NewAbstractController(logger),
 		ctx:      ctx,
 		cache:    cache,
@@ -30,7 +30,7 @@ func NewPagedataGetController(ctx context.Context, cache cache.Cacher, logger lo
 	}
 }
 
-func (c *PagedataGetController) Get(ctx *fasthttp.RequestCtx) {
+func (c *PagedataGet) Get(ctx *fasthttp.RequestCtx) {
 	reqCtx, ok := ctx.UserValue(values.CtxKey).(context.Context)
 	if !ok {
 		c.logger.Error(c.ctx, "context.Context is not exists into the fasthttp.RequestCtx "+
@@ -67,11 +67,11 @@ func (c *PagedataGetController) Get(ctx *fasthttp.RequestCtx) {
 	}
 }
 
-func (c *PagedataGetController) AddRoute(router *router.Router) {
+func (c *PagedataGet) AddRoute(router *router.Router) {
 	router.GET(PagedataGetPath, c.Get)
 }
 
-func (c *PagedataGetController) get() ([]byte, error) {
+func (c *PagedataGet) get() ([]byte, error) {
 	datum := make(map[string]map[string]interface{}, 1)
 	datum["data"] = make(map[string]interface{}, 1)
 	datum["data"]["success"] = true

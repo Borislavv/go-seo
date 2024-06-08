@@ -2,9 +2,10 @@ package seo
 
 import (
 	"context"
-	"github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
-	internalserver "github.com/Borislavv/go-seo/internal/shared/server"
-	"github.com/Borislavv/go-seo/internal/shared/values"
+	pagedatacontroller "github.com/Borislavv/go-seo/internal/pagedata/infrastructure/api/v1/http/controller"
+	internalserver "github.com/Borislavv/go-seo/internal/shared/infrastructure/server"
+	"github.com/Borislavv/go-seo/internal/shared/infrastructure/values"
+	titlecontroller "github.com/Borislavv/go-seo/internal/title/infrastructure/api/v1/http/controller"
 	"github.com/Borislavv/go-seo/pkg/shared/cache"
 	"github.com/Borislavv/go-seo/pkg/shared/logger"
 	"github.com/Borislavv/go-seo/pkg/shared/server"
@@ -47,9 +48,10 @@ func (s *App) Run() {
 }
 
 // controllers returns a slice of server.HttpController[s] for http server (handlers).
-func controllers(ctx context.Context, chr cache.Cacher, lgr logger.Logger) []server.HttpController {
+func controllers(ctx context.Context, cache cache.Cacher, logger logger.Logger) []server.HttpController {
 	return []server.HttpController{
-		controller.NewPagedataGetController(ctx, chr, lgr),
+		pagedatacontroller.NewPagedataGet(ctx, cache, logger),
+		titlecontroller.NewTitleGet(ctx, cache, logger),
 	}
 }
 

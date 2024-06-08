@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/Borislavv/go-seo/internal/shared/values"
 	"github.com/Borislavv/go-seo/pkg/shared/api/http/controller"
 	"github.com/Borislavv/go-seo/pkg/shared/cache"
@@ -76,6 +75,5 @@ func (c *PagedataGetController) get() ([]byte, error) {
 	datum := make(map[string]map[string]interface{}, 1)
 	datum["data"] = make(map[string]interface{}, 1)
 	datum["data"]["success"] = true
-	fmt.Println("======== compurted ========")
 	return json.Marshal(datum)
 }

@@ -1,7 +1,7 @@
 package logger
 
 import (
-	"github.com/Borislavv/go-seo/internal/shared/helper"
+	"github.com/Borislavv/go-seo/internal/shared/infrastructure/helper"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io"
